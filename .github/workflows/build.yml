@@ -16,11 +16,11 @@ jobs:
           java-version: '17'
 
       - name: Set up Flutter
-        uses: subosito/flutter-action@v2.16.0
+        uses: subosito/flutter-action@v2
         with:
           channel: 'stable'
 
-      - run: flutter create --overwrite .
+      - run: flutter create --overwrite --project-name my_flutter_app .
       - run: flutter build apk --release
 
       - uses: actions/upload-artifact@v4
