@@ -132,6 +132,7 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
   List<dynamic> _videos = [];
   bool _isLoading = false;
   bool _isSearching = false;
+  String _errorMessage = '';
 
   @override
   void initState() {
@@ -143,17 +144,20 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
     setState(() {
       _isLoading = true;
       _isSearching = false;
+      _errorMessage = '';
     });
-    _fetchAndFilterVideos('${widget.userClass} full course study lectures');
+    // Class name ke hisab se automatic search query
+    _fetchAndFilterVideos('${widget.userClass} syllabus lectures preparation');
   }
 
   Future<void> _searchVideos(String query) async {
-    if (query.isEmpty) return;
+    if (query.trim().isEmpty) return;
     setState(() {
       _isLoading = true;
       _isSearching = true;
+      _errorMessage = '';
     });
-    _fetchAndFilterVideos('$query study lecture tutorial class');
+    _fetchAndFilterVideos('$query ${widget.userClass}');
   }
 
   Future<void> _fetchAndFilterVideos(String searchQuery) async {
@@ -165,17 +169,15 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
       final response = await http.get(Uri.parse(url));
       if (response.statusCode == 200) {
         final data = json.decode(response.body);
-        final List rawVideos = data['items'];
+        final List rawVideos = data['items'] ?? [];
 
-        final blockedKeywords = [
-          'cartoon', 'song', 'rhyme', 'nursery', 'dance', 
-          'movie', 'baby', 'funny', 'fun', 'game', 'play', 'trailer', 'status'
-        ];
+        // Safe/Light blocking keywords
+        final blockedKeywords = ['nursery', 'rhyme', 'baby', 'cartoon'];
 
         final filtered = rawVideos.where((item) {
           final title = (item['snippet']['title'] as String).toLowerCase();
           for (var badWord in blockedKeywords) {
-            if (title.contains(badWord) && !_searchController.text.toLowerCase().contains('animation')) {
+            if (title.contains(badWord)) {
               return false;
             }
           }
@@ -183,14 +185,22 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
         }).toList();
 
         setState(() {
-          _videos = filtered;
+          // Fallback: agar filtered list empty ho, toh raw videos hi dikha do
+          _videos = filtered.isNotEmpty ? filtered : rawVideos;
           _isLoading = false;
+          _errorMessage = _videos.isEmpty ? 'Koi video nahi mili.' : '';
         });
       } else {
-        setState(() => _isLoading = false);
+        setState(() {
+          _isLoading = false;
+          _errorMessage = 'API Error: ${response.statusCode} - Request failed.';
+        });
       }
     } catch (e) {
-      setState(() => _isLoading = false);
+      setState(() {
+        _isLoading = false;
+        _errorMessage = 'Connection error. Internet check karein.';
+      });
     }
   }
 
@@ -199,6 +209,124 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
     _loadHomeVideos();
   }
 
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        backgroundColor: Colors.black,
+        title: Text('${widget.userClass} Feed 📚', style: const TextStyle(color: Colors.white)),
+        actions: [
+          if (_isSearching)
+            IconButton(
+              icon: const Icon(Icons.close, color: Colors.white),
+              onPressed: _resetToHome,
+            )
+        ],
+      ),
+      body: Column(
+        children: [
+          // Search Bar
+          Padding(
+            padding: const EdgeInsets.all(12.0),
+            fieldView: Container(
+              padding: const EdgeInsets.symmetric(horizontal: 12),
+              decoration: BoxDecoration(
+                color: Colors.grey[900],
+                borderRadius: BorderRadius.circular(12),
+                border: Border.all(color: Colors.white24),
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Search topic (e.g. Physics, Maths)...',
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  border: InputBorder.none,
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.white),
+                    onPressed: () => _searchVideos(_searchController.text),
+                  ),
+                ),
+                onSubmitted: _searchVideos,
+              ),
+            ),
+          ),
+          
+          // Body Content (Loading / Error / Video List)
+          Expanded(
+            child: _isLoading
+                ? const Center(child: CircularProgressIndicator(color: Colors.blue))
+                : _errorMessage.isNotEmpty
+                    ? Center(
+                        child: Text(
+                          _errorMessage,
+                          style: const TextStyle(color: Colors.white70, fontSize: 16),
+                        ),
+                      )
+                    : ListView.builder(
+                        itemCount: _videos.length,
+                        itemBuilder: (context, index) {
+                          final video = _videos[index];
+                          final snippet = video['snippet'];
+                          final title = snippet['title'] ?? '';
+                          final channel = snippet['channelTitle'] ?? '';
+                          final thumbnailUrl = snippet['thumbnails']['high']['url'] ?? '';
+
+                          return Container(
+                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
+                            decoration: BoxDecoration(
+                              color: Colors.grey[900],
+                              borderRadius: BorderRadius.circular(12),
+                            ),
+                            child: Column(
+                              crossAxisAlignment: CrossAlignment.start,
+                              children: [
+                                ClipRRect(
+                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
+                                  child: Image.network(
+                                    thumbnailUrl,
+                                    width: double.infinity,
+                                    height: 200,
+                                    fit: BoxFit.cover,
+                                  ),
+                                ),
+                                Padding(
+                                  padding: const EdgeInsets.all(12.0),
+                                  child: Column(
+                                    crossAxisAlignment: CrossAlignment.start,
+                                    children: [
+                                      Text(
+                                        title,
+                                        maxLines: 2,
+                                        overflow: TextOverflow.ellipsis,
+                                        style: const TextStyle(
+                                          color: Colors.white,
+                                          fontSize: 16,
+                                          fontWeight: FontWeight.bold,
+                                        ),
+                                      ),
+                                      const SizedBox(height: 6),
+                                      Text(
+                                        channel,
+                                        style: const TextStyle(color: Colors.grey, fontSize: 14),
+                                      ),
+                                    ],
+                                  ),
+                                ),
+                              ],
+                            ),
+                          );
+                        },
+                      ),
+          ),
+        ],
+      ),
+    );
+  }
+}
+
+  
   Future<void> _openVideoInApp(String videoId) async {
     final Uri url = Uri.parse('https://www.youtube.com/watch?v=$videoId');
     if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
