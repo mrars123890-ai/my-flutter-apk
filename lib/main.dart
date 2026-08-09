@@ -251,6 +251,188 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
               ),
             ),
             const SizedBox(height: 15),
+            _isLoading// ------------------- TAB 1: VIDEOS (INFINITE SCROLL ENABLED) -------------------
+class YouTubeSearchScreen extends StatefulWidget {
+  final String userClass;
+  const YouTubeSearchScreen({super.key, required this.userClass});
+
+  @override
+  State<YouTubeSearchScreen> createState() => _YouTubeSearchScreenState();
+}
+
+class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
+  final String apiKey = 'AIzaSyB56HXfKiXxIGEiNCthtNAMYeNTvBjjMQ4';
+  final TextEditingController _searchController = TextEditingController();
+  final ScrollController _scrollController = ScrollController();
+
+  List<dynamic> _videos = [];
+  bool _isLoading = false;
+  bool _isLoadingMore = false;
+  bool _isSearching = false;
+  String _statusMessage = '';
+  
+  String? _nextPageToken;
+  String _currentQuery = '';
+
+  @override
+  void initState() {
+    super.initState();
+    _scrollController.addListener(_onScroll);
+    _loadHomeVideos();
+  }
+
+  @override
+  void dispose() {
+    _scrollController.dispose();
+    _searchController.dispose();
+    super.dispose();
+  }
+
+  // Bottom tak pahunchne par automatic agli videos fetch hongi
+  void _onScroll() {
+    if (_scrollController.position.pixels >= _scrollController.position.maxScrollExtent - 200 &&
+        !_isLoadingMore &&
+        !_isLoading &&
+        _nextPageToken != null) {
+      _loadMoreVideos();
+    }
+  }
+
+  Future<void> _loadHomeVideos() async {
+    setState(() {
+      _isLoading = true;
+      _isSearching = false;
+      _statusMessage = '';
+      _videos.clear();
+      _nextPageToken = null;
+    });
+    _currentQuery = '${widget.userClass} full syllabus study lectures';
+    await _fetchAndFilterVideos(_currentQuery);
+  }
+
+  Future<void> _searchVideos(String query) async {
+    if (query.trim().isEmpty) return;
+    setState(() {
+      _isLoading = true;
+      _isSearching = true;
+      _statusMessage = '';
+      _videos.clear();
+      _nextPageToken = null;
+    });
+    _currentQuery = '$query ${widget.userClass} lecture tutorial';
+    await _fetchAndFilterVideos(_currentQuery);
+  }
+
+  Future<void> _loadMoreVideos() async {
+    if (_nextPageToken == null) return;
+    setState(() => _isLoadingMore = true);
+    await _fetchAndFilterVideos(_currentQuery, isNextPage: true);
+  }
+
+  Future<void> _fetchAndFilterVideos(String searchQuery, {bool isNextPage = false}) async {
+    final String cleanQuery = Uri.encodeComponent(searchQuery);
+    String url =
+        'https://www.googleapis.com/youtube/v3/search?part=snippet&maxResults=20&q=$cleanQuery&type=video&key=$apiKey';
+
+    if (_nextPageToken != null) {
+      url += '&pageToken=$_nextPageToken';
+    }
+
+    try {
+      final response = await http.get(Uri.parse(url));
+      if (response.statusCode == 200) {
+        final data = json.decode(response.body);
+        final List rawVideos = data['items'] ?? [];
+        _nextPageToken = data['nextPageToken'];
+
+        final blockedKeywords = ['rhyme', 'nursery', 'baby', 'cartoon'];
+
+        final filtered = rawVideos.where((item) {
+          final title = (item['snippet']['title'] as String).toLowerCase();
+          for (var badWord in blockedKeywords) {
+            if (title.contains(badWord)) return false;
+          }
+          return true;
+        }).toList();
+
+        final newResults = filtered.isNotEmpty ? filtered : rawVideos;
+
+        setState(() {
+          if (isNextPage) {
+            _videos.addAll(newResults);
+          } else {
+            _videos = newResults;
+          }
+          _isLoading = false;
+          _isLoadingMore = false;
+          _statusMessage = _videos.isEmpty ? 'Koi video nahi mili!' : '';
+        });
+      } else {
+        setState(() {
+          _isLoading = false;
+          _isLoadingMore = false;
+          _statusMessage = 'API Limit / Network Error';
+        });
+      }
+    } catch (e) {
+      setState(() {
+        _isLoading = false;
+        _isLoadingMore = false;
+        _statusMessage = 'Connection Error';
+      });
+    }
+  }
+
+  void _resetToHome() {
+    _searchController.clear();
+    _loadHomeVideos();
+  }
+
+  Future<void> _openVideo(String videoId) async {
+    final Uri url = Uri.parse('https://www.youtube.com/watch?v=$videoId');
+    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
+      await launchUrl(url, mode: LaunchMode.platformDefault);
+    }
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    return Scaffold(
+      backgroundColor: Colors.black,
+      appBar: AppBar(
+        leading: _isSearching
+            ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _resetToHome)
+            : const Icon(Icons.school),
+        title: Text('${widget.userClass} Feed 📚'),
+        backgroundColor: Colors.black,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.all(12.0),
+        child: Column(
+          children: [
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C1E),
+                borderRadius: BorderRadius.circular(10),
+              ),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Search topic (e.g. Physics, Chemistry)...',
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.blueAccent),
+                    onPressed: () => _searchVideos(_searchController.text),
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+                onSubmitted: (value) => _searchVideos(value),
+              ),
+            ),
+            const SizedBox(height: 15),
             _isLoading
                 ? const Expanded(child: Center(child: CircularProgressIndicator(color: Colors.blueAccent)))
                 : _statusMessage.isNotEmpty
@@ -261,8 +443,16 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
                       )
                     : Expanded(
                         child: ListView.builder(
-                          itemCount: _videos.length,
+                          controller: _scrollController,
+                          itemCount: _videos.length + (_isLoadingMore ? 1 : 0),
                           itemBuilder: (context, index) {
+                            if (index == _videos.length) {
+                              return const Padding(
+                                padding: EdgeInsets.symmetric(vertical: 20),
+                                child: Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+                              );
+                            }
+
                             final video = _videos[index]['snippet'];
                             final videoId = _videos[index]['id']?['videoId'] ?? '';
                             final title = video['title'] ?? '';
@@ -328,6 +518,7 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
     );
   }
 }
+
 // ------------------- TAB 2: NATIVE-STYLE NOTES -------------------
 class NativeNotesScreen extends StatefulWidget {
   final List<Map<String, dynamic>> notes;
