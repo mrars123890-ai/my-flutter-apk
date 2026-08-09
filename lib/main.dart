@@ -15,8 +15,12 @@ class MyApp extends StatelessWidget {
     return MaterialApp(
       debugShowCheckedModeBanner: false,
       theme: ThemeData.dark().copyWith(
-        scaffoldBackgroundColor: const Color(0xFF000000),
+        scaffoldBackgroundColor: const Color(0xFF0D0D0D),
         cardColor: const Color(0xFF1C1C1E),
+        colorScheme: const ColorScheme.dark(
+          primary: Colors.blueAccent,
+          surface: Color(0xFF1C1C1E),
+        ),
       ),
       home: const MainNavigationScreen(),
     );
@@ -41,8 +45,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       'title': 'Physics: Newton\'s Laws of Motion',
       'content': '1st Law: Inertia, 2nd Law: F=ma, 3rd Law: Action & Reaction.',
       'category': 'Education',
-      'time': '2/8/2026',
+      'time': '2026-08-09',
       'isPinned': true,
+    },
+    {
+      'title': 'Chemistry Formulae',
+      'content': 'Organic reactions summary and important equations.',
+      'category': 'Education',
+      'time': '2026-08-08',
+      'isPinned': false,
     },
   ];
 
@@ -55,7 +66,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
         onAddNote: (title, content, category, isPinned) {
           setState(() {
             final DateTime dt = DateTime.now();
-            myNotes.add({
+            myNotes.insert(0, {
               'title': title,
               'content': content,
               'category': category,
@@ -83,6 +94,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       ProfileScreen(
         name: userName,
         studentClass: selectedClass,
+        totalNotes: myNotes.length,
         onSave: (newName, newClass) {
           setState(() {
             userName = newName;
@@ -96,14 +108,15 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
       body: pages[_currentIndex],
       bottomNavigationBar: BottomNavigationBar(
         currentIndex: _currentIndex,
-        selectedItemColor: Colors.white,
+        selectedItemColor: Colors.blueAccent,
         unselectedItemColor: Colors.grey,
         backgroundColor: const Color(0xFF121212),
+        type: BottomNavigationBarType.fixed,
         onTap: (index) => setState(() => _currentIndex = index),
         items: const [
           BottomNavigationBarItem(icon: Icon(Icons.play_circle_fill), label: 'Videos'),
-          BottomNavigationBarItem(icon: Icon(Icons.note_alt), label: 'Notes'),
-          BottomNavigationBarItem(icon: Icon(Icons.person), label: 'Profile'),
+          BottomNavigationBarItem(icon: Icon(Icons.note_alt_rounded), label: 'Notes'),
+          BottomNavigationBarItem(icon: Icon(Icons.person_rounded), label: 'Profile'),
         ],
       ),
     );
@@ -255,13 +268,14 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
+      backgroundColor: const Color(0xFF0D0D0D),
       appBar: AppBar(
+        elevation: 0,
         leading: _isSearching
             ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _resetToHome)
-            : const Icon(Icons.school),
-        title: Text('${widget.userClass} Feed 📚'),
-        backgroundColor: Colors.black,
+            : const Icon(Icons.school, color: Colors.blueAccent),
+        title: Text('${widget.userClass} Feed 📚', style: const TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF0D0D0D),
       ),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
@@ -270,7 +284,7 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
             Container(
               decoration: BoxDecoration(
                 color: const Color(0xFF1C1C1E),
-                borderRadius: BorderRadius.circular(10),
+                borderRadius: BorderRadius.circular(12),
               ),
               child: TextField(
                 controller: _searchController,
@@ -284,7 +298,7 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
                     onPressed: () => _searchVideos(_searchController.text),
                   ),
                   border: InputBorder.none,
-                  contentPadding: const EdgeInsets.all(12),
+                  contentPadding: const EdgeInsets.all(14),
                 ),
                 onSubmitted: (value) => _searchVideos(value),
               ),
@@ -307,6 +321,215 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
                               return const Padding(
                                 padding: EdgeInsets.symmetric(vertical: 20),
                                 child: Center(child: CircularProgressIndicator(color: Colors.blueAccent)),
+                              );
+                            }
+
+                            final video = _videos[index]['snippet'];
+                            final videoId = _videos[index]['id']?['videoId'] ?? '';
+                            final title = video['title'] ?? '';
+                            final channel = video['channelTitle'] ?? '';
+                            final thumb = video['thumbnails']?['medium']?['url'] ?? '';
+
+                            return InkWell(
+                              onTap: () => _openVideo(videoId),
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 15),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1C1C1E),
+                                  borderRadius: BorderRadius.circular(14),
+                                ),
+                                clipBehavior: Clip.antiAlias,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Image.network(
+                                      thumb,
+                                      width: double.infinity,
+                                      height: 190,
+                                      fit: BoxFit.cover,
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
+                                        children: [
+                                          Text(
+                                            title,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
+                                          ),
+                                          const SizedBox(height: 8),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  channel,
+                                                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              const Icon(Icons.play_circle_fill, color: Colors.redAccent, size: 28),
+                                            ],
+                                          ),
+                                        ],
+                                      ),
+                                    ),
+                                  ],
+                                ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
+          ],
+        ),
+      ),
+    );
+  }
+}
+
+// ------------------- TAB 2: STYLISH NOTES -------------------
+class NativeNotesScreen extends StatefulWidget {
+  final List<Map<String, dynamic>> notes;
+  final Function(String, String, String, bool) onAddNote;
+  final Function(int, String, String, String, bool) onEditNote;
+  final Function(int) onDeleteNote;
+
+  const NativeNotesScreen({
+    super.key,
+    required this.notes,
+    required this.onAddNote,
+    required this.onEditNote,
+    required this.onDeleteNote,
+  });
+
+  @override
+  State<NativeNotesScreen> createState() => _NativeNotesScreenState();
+}
+
+class _NativeNotesScreenState extends State<NativeNotesScreen> {
+  String selectedFilter = 'All';
+  final List<String> categories = ['All', 'Education', 'Personal', 'Work'];
+
+  void _showNoteDialog({int? editIndex}) {
+    final bool isEditing = editIndex != null;
+    final titleController = TextEditingController(text: isEditing ? widget.notes[editIndex]['title'] : '');
+    final contentController = TextEditingController(text: isEditing ? widget.notes[editIndex]['content'] : '');
+    String category = isEditing ? widget.notes[editIndex]['category'] : 'Education';
+    bool isPinned = isEditing ? widget.notes[editIndex]['isPinned'] : false;
+
+    showDialog(
+      context: context,
+      builder: (context) => StatefulBuilder(
+        builder: (context, setDialogState) => AlertDialog(
+          backgroundColor: const Color(0xFF1C1C1E),
+          shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(16)),
+          title: Text(isEditing ? 'Edit Note ✏️' : 'New Note 📝', style: const TextStyle(color: Colors.white)),
+          content: SingleChildScrollView(
+            child: Column(
+              mainAxisSize: MainAxisSize.min,
+              children: [
+                TextField(
+                  controller: titleController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Title', labelStyle: TextStyle(color: Colors.grey)),
+                ),
+                const SizedBox(height: 10),
+                TextField(
+                  controller: contentController,
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Content', labelStyle: TextStyle(color: Colors.grey)),
+                  maxLines: 4,
+                ),
+                const SizedBox(height: 15),
+                DropdownButtonFormField<String>(
+                  value: category,
+                  dropdownColor: const Color(0xFF2C2C2E),
+                  style: const TextStyle(color: Colors.white),
+                  decoration: const InputDecoration(labelText: 'Category', labelStyle: TextStyle(color: Colors.grey)),
+                  items: ['Education', 'Personal', 'Work']
+                      .map((cat) => DropdownMenuItem(value: cat, child: Text(cat)))
+                      .toList(),
+                  onChanged: (val) => setDialogState(() => category = val!),
+                ),
+                Row(
+                  children: [
+                    Checkbox(
+                      value: isPinned,
+                      activeColor: Colors.blueAccent,
+                      onChanged: (val) => setDialogState(() => isPinned = val!),
+                    ),
+                    const Text('Pin this note', style: TextStyle(color: Colors.white)),
+                  ],
+                ),
+              ],
+            ),
+          ),
+          actions: [
+            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel', style: TextStyle(color: Colors.grey))),
+            ElevatedButton(
+              style: ElevatedButton.styleFrom(backgroundColor: Colors.blueAccent),
+              onPressed: () {
+                if (titleController.text.isNotEmpty) {
+                  if (isEditing) {
+                    widget.onEditNote(editIndex, titleController.text, contentController.text, category, isPinned);
+                  } else {
+                    widget.onAddNote(titleController.text, contentController.text, category, isPinned);
+                  }
+                  Navigator.pop(context);
+                }
+              },
+              child: Text(isEditing ? 'Update' : 'Save', style: const TextStyle(color: Colors.white)),
+            ),
+          ],
+        ),
+      ),
+    );
+  }
+
+  @override
+  Widget build(BuildContext context) {
+    final filteredNotes = selectedFilter == 'All'
+        ? widget.notes
+        : widget.notes.where((n) => n['category'] == selectedFilter).toList();
+
+    return Scaffold(
+      backgroundColor: const Color(0xFF0D0D0D),
+      appBar: AppBar(
+        title: const Text('Notes 📝', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF0D0D0D),
+        elevation: 0,
+      ),
+      body: Padding(
+        padding: const EdgeInsets.symmetric(horizontal: 12.0),
+        child: Column(
+          children: [
+            // Category Filter Chips
+            SizedBox(
+              height: 40,
+              child: ListView(
+                scrollDirection: Axis.horizontal,
+                children: categories.map((cat) {
+                  final isSelected = selectedFilter == cat;
+                  return Padding(
+                    padding: const EdgeInsets.only(right: 8.0),
+                    child: FilterChip(
+                      label: Text(cat),
+                      selected: isSelected,
+                      selectedColor: Colors.blueAccent,
+                      backgroundColor: const Color(0xFF1C1C1E),
+                      labelStyle: TextStyle(color: isSelected ? Colors.white : Colors.grey),
+                      onSelected: (_) => setState(() => selectedFilter = cat),
+                    ),
+                  );
+                }).toList(),
+              ),
+            ),
+            const SizedBox(height: 15),
+            Expanded(
+              chlors.blueAccent)),
                               );
                             }
 
