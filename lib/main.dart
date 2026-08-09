@@ -23,6 +23,7 @@ class MyApp extends StatelessWidget {
   }
 }
 
+// ------------------- MAIN NAVIGATION -------------------
 class MainNavigationScreen extends StatefulWidget {
   const MainNavigationScreen({super.key});
 
@@ -31,9 +32,10 @@ class MainNavigationScreen extends StatefulWidget {
 }
 
 class _MainNavigationScreenState extends State<MainNavigationScreen> {
-  int _currentIndex = 1;
-  String userName = "Student";
-  String selectedClass = "Class 10";
+  // 0 set karne se app seedha Videos tab par khulegi
+  int _currentIndex = 0; 
+  String userName = "Arsalan";
+  String selectedClass = "Class 12";
   
   List<Map<String, dynamic>> myNotes = [
     {
@@ -117,7 +119,7 @@ class _MainNavigationScreenState extends State<MainNavigationScreen> {
     );
   }
 }
-
+// ------------------- TAB 1: VIDEOS -------------------
 class YouTubeSearchScreen extends StatefulWidget {
   final String userClass;
   const YouTubeSearchScreen({super.key, required this.userClass});
@@ -132,7 +134,7 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
   List<dynamic> _videos = [];
   bool _isLoading = false;
   bool _isSearching = false;
-  String _errorMessage = '';
+  String _statusMessage = '';
 
   @override
   void initState() {
@@ -144,10 +146,9 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
     setState(() {
       _isLoading = true;
       _isSearching = false;
-      _errorMessage = '';
+      _statusMessage = '';
     });
-    // Class name ke hisab se automatic search query
-    _fetchAndFilterVideos('${widget.userClass} syllabus lectures preparation');
+    _fetchAndFilterVideos('${widget.userClass} full syllabus study lectures');
   }
 
   Future<void> _searchVideos(String query) async {
@@ -155,9 +156,9 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
     setState(() {
       _isLoading = true;
       _isSearching = true;
-      _errorMessage = '';
+      _statusMessage = '';
     });
-    _fetchAndFilterVideos('$query ${widget.userClass}');
+    _fetchAndFilterVideos('$query ${widget.userClass} lecture tutorial');
   }
 
   Future<void> _fetchAndFilterVideos(String searchQuery) async {
@@ -171,35 +172,31 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
         final data = json.decode(response.body);
         final List rawVideos = data['items'] ?? [];
 
-        // Safe/Light blocking keywords
-        final blockedKeywords = ['nursery', 'rhyme', 'baby', 'cartoon'];
+        final blockedKeywords = ['rhyme', 'nursery', 'baby', 'cartoon'];
 
         final filtered = rawVideos.where((item) {
           final title = (item['snippet']['title'] as String).toLowerCase();
           for (var badWord in blockedKeywords) {
-            if (title.contains(badWord)) {
-              return false;
-            }
+            if (title.contains(badWord)) return false;
           }
           return true;
         }).toList();
 
         setState(() {
-          // Fallback: agar filtered list empty ho, toh raw videos hi dikha do
           _videos = filtered.isNotEmpty ? filtered : rawVideos;
           _isLoading = false;
-          _errorMessage = _videos.isEmpty ? 'Koi video nahi mili.' : '';
+          _statusMessage = _videos.isEmpty ? 'Koi video nahi mili!' : '';
         });
       } else {
         setState(() {
           _isLoading = false;
-          _errorMessage = 'API Error: ${response.statusCode} - Request failed.';
+          _statusMessage = 'API Limit / Network Error';
         });
       }
     } catch (e) {
       setState(() {
         _isLoading = false;
-        _errorMessage = 'Connection error. Internet check karein.';
+        _statusMessage = 'Connection Error';
       });
     }
   }
@@ -209,223 +206,129 @@ class _YouTubeSearchScreenState extends State<YouTubeSearchScreen> {
     _loadHomeVideos();
   }
 
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(
-        backgroundColor: Colors.black,
-        title: Text('${widget.userClass} Feed 📚', style: const TextStyle(color: Colors.white)),
-        actions: [
-          if (_isSearching)
-            IconButton(
-              icon: const Icon(Icons.close, color: Colors.white),
-              onPressed: _resetToHome,
-            )
-        ],
-      ),
-      body: Column(
-        children: [
-          // Search Bar
-          Padding(
-            padding: const EdgeInsets.all(12.0),
-            fieldView: Container(
-              padding: const EdgeInsets.symmetric(horizontal: 12),
-              decoration: BoxDecoration(
-                color: Colors.grey[900],
-                borderRadius: BorderRadius.circular(12),
-                border: Border.all(color: Colors.white24),
-              ),
-              child: TextField(
-                controller: _searchController,
-                style: const TextStyle(color: Colors.white),
-                decoration: InputDecoration(
-                  hintText: 'Search topic (e.g. Physics, Maths)...',
-                  hintStyle: const TextStyle(color: Colors.grey),
-                  border: InputBorder.none,
-                  suffixIcon: IconButton(
-                    icon: const Icon(Icons.send, color: Colors.white),
-                    onPressed: () => _searchVideos(_searchController.text),
-                  ),
-                ),
-                onSubmitted: _searchVideos,
-              ),
-            ),
-          ),
-          
-          // Body Content (Loading / Error / Video List)
-          Expanded(
-            child: _isLoading
-                ? const Center(child: CircularProgressIndicator(color: Colors.blue))
-                : _errorMessage.isNotEmpty
-                    ? Center(
-                        child: Text(
-                          _errorMessage,
-                          style: const TextStyle(color: Colors.white70, fontSize: 16),
-                        ),
-                      )
-                    : ListView.builder(
-                        itemCount: _videos.length,
-                        itemBuilder: (context, index) {
-                          final video = _videos[index];
-                          final snippet = video['snippet'];
-                          final title = snippet['title'] ?? '';
-                          final channel = snippet['channelTitle'] ?? '';
-                          final thumbnailUrl = snippet['thumbnails']['high']['url'] ?? '';
-
-                          return Container(
-                            margin: const EdgeInsets.symmetric(horizontal: 12, vertical: 8),
-                            decoration: BoxDecoration(
-                              color: Colors.grey[900],
-                              borderRadius: BorderRadius.circular(12),
-                            ),
-                            child: Column(
-                              crossAxisAlignment: CrossAlignment.start,
-                              children: [
-                                ClipRRect(
-                                  borderRadius: const BorderRadius.vertical(top: Radius.circular(12)),
-                                  child: Image.network(
-                                    thumbnailUrl,
-                                    width: double.infinity,
-                                    height: 200,
-                                    fit: BoxFit.cover,
-                                  ),
-                                ),
-                                Padding(
-                                  padding: const EdgeInsets.all(12.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAlignment.start,
-                                    children: [
-                                      Text(
-                                        title,
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                        style: const TextStyle(
-                                          color: Colors.white,
-                                          fontSize: 16,
-                                          fontWeight: FontWeight.bold,
-                                        ),
-                                      ),
-                                      const SizedBox(height: 6),
-                                      Text(
-                                        channel,
-                                        style: const TextStyle(color: Colors.grey, fontSize: 14),
-                                      ),
-                                    ],
-                                  ),
-                                ),
-                              ],
-                            ),
-                          );
-                        },
-                      ),
-          ),
-        ],
-      ),
-    );
-  }
-}
-
-  
-  Future<void> _openVideoInApp(String videoId) async {
+  Future<void> _openVideo(String videoId) async {
     final Uri url = Uri.parse('https://www.youtube.com/watch?v=$videoId');
-    if (!await launchUrl(url, mode: LaunchMode.externalApplication)) {
-      debugPrint('Could not launch $url');
+    if (await canLaunchUrl(url)) {
+      await launchUrl(url, mode: LaunchMode.externalApplication);
     }
   }
 
   @override
   Widget build(BuildContext context) {
     return Scaffold(
+      backgroundColor: Colors.black,
       appBar: AppBar(
         leading: _isSearching
             ? IconButton(icon: const Icon(Icons.arrow_back), onPressed: _resetToHome)
             : const Icon(Icons.school),
-        title: Text(_isSearching ? 'Search Results 🔍' : '${widget.userClass} Feed 📚'),
+        title: Text('${widget.userClass} Feed 📚'),
         backgroundColor: Colors.black,
       ),
       body: Padding(
         padding: const EdgeInsets.all(12.0),
         child: Column(
           children: [
-            TextField(
-              controller: _searchController,
-              decoration: InputDecoration(
-                hintText: 'Search topic (e.g. Physics, Python...)',
-                prefixIcon: const Icon(Icons.search),
-                suffixIcon: IconButton(
-                  icon: const Icon(Icons.send),
-                  onPressed: () => _searchVideos(_searchController.text),
-                ),
-                border: OutlineInputBorder(borderRadius: BorderRadius.circular(10)),
+            Container(
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C1E),
+                borderRadius: BorderRadius.circular(10),
               ),
-              onSubmitted: (value) => _searchVideos(value),
+              child: TextField(
+                controller: _searchController,
+                style: const TextStyle(color: Colors.white),
+                decoration: InputDecoration(
+                  hintText: 'Search topic (e.g. Physics, Chemistry)...',
+                  hintStyle: const TextStyle(color: Colors.grey),
+                  prefixIcon: const Icon(Icons.search, color: Colors.grey),
+                  suffixIcon: IconButton(
+                    icon: const Icon(Icons.send, color: Colors.blueAccent),
+                    onPressed: () => _searchVideos(_searchController.text),
+                  ),
+                  border: InputBorder.none,
+                  contentPadding: const EdgeInsets.all(12),
+                ),
+                onSubmitted: (value) => _searchVideos(value),
+              ),
             ),
             const SizedBox(height: 15),
             _isLoading
-                ? const Expanded(child: Center(child: CircularProgressIndicator()))
-                : Expanded(
-                    child: ListView.builder(
-                      itemCount: _videos.length,
-                      itemBuilder: (context, index) {
-                        final video = _videos[index]['snippet'];
-                        final videoId = _videos[index]['id']['videoId'];
-                        final title = video['title'];
-                        return InkWell(
-                          onTap: () => _openVideoInApp(videoId),
-                          child: Card(
-                            margin: const EdgeInsets.only(bottom: 12),
-                            clipBehavior: Clip.antiAlias,
-                            child: Column(
-                              crossAxisAlignment: CrossAxisAlignment.start,
-                              children: [
-                                Image.network(
-                                  video['thumbnails']['medium']['url'],
-                                  width: double.infinity,
-                                  height: 180,
-                                  fit: BoxFit.cover,
+                ? const Expanded(child: Center(child: CircularProgressIndicator(color: Colors.blueAccent)))
+                : _statusMessage.isNotEmpty
+                    ? Expanded(
+                        child: Center(
+                          child: Text(_statusMessage, style: const TextStyle(color: Colors.white70, fontSize: 16)),
+                        ),
+                      )
+                    : Expanded(
+                        child: ListView.builder(
+                          itemCount: _videos.length,
+                          itemBuilder: (context, index) {
+                            final video = _videos[index]['snippet'];
+                            final videoId = _videos[index]['id']?['videoId'] ?? '';
+                            final title = video['title'] ?? '';
+                            final channel = video['channelTitle'] ?? '';
+                            final thumb = video['thumbnails']?['medium']?['url'] ?? '';
+
+                            return InkWell(
+                              onTap: () => _openVideo(videoId),
+                              child: Container(
+                                margin: const EdgeInsets.only(bottom: 15),
+                                decoration: BoxDecoration(
+                                  color: const Color(0xFF1C1C1E),
+                                  borderRadius: BorderRadius.circular(12),
                                 ),
-                                Padding(
-                                  padding: const EdgeInsets.all(10.0),
-                                  child: Column(
-                                    crossAxisAlignment: CrossAxisAlignment.start,
-                                    children: [
-                                      Text(
-                                        title,
-                                        style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14),
-                                        maxLines: 2,
-                                        overflow: TextOverflow.ellipsis,
-                                      ),
-                                      const SizedBox(height: 5),
-                                      Row(
-                                        mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                clipBehavior: Clip.antiAlias,
+                                child: Column(
+                                  crossAxisAlignment: CrossAxisAlignment.start,
+                                  children: [
+                                    Image.network(
+                                      thumb,
+                                      width: double.infinity,
+                                      height: 180,
+                                      fit: BoxFit.cover,
+                                    ),
+                                    Padding(
+                                      padding: const EdgeInsets.all(12.0),
+                                      child: Column(
+                                        crossAxisAlignment: CrossAxisAlignment.start,
                                         children: [
-                                          Expanded(
-                                            child: Text(
-                                              video['channelTitle'],
-                                              style: const TextStyle(color: Colors.grey, fontSize: 12),
-                                              overflow: TextOverflow.ellipsis,
-                                            ),
+                                          Text(
+                                            title,
+                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
+                                            maxLines: 2,
+                                            overflow: TextOverflow.ellipsis,
                                           ),
-                                          const Icon(Icons.play_circle_fill, color: Colors.redAccent),
+                                          const SizedBox(height: 6),
+                                          Row(
+                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                            children: [
+                                              Expanded(
+                                                child: Text(
+                                                  channel,
+                                                  style: const TextStyle(color: Colors.grey, fontSize: 12),
+                                                  overflow: TextOverflow.ellipsis,
+                                                ),
+                                              ),
+                                              const Icon(Icons.play_circle_fill, color: Colors.redAccent),
+                                            ],
+                                          ),
                                         ],
                                       ),
-                                    ],
-                                  ),
+                                    ),
+                                  ],
                                 ),
-                              ],
-                            ),
-                          ),
-                        );
-                      },
-                    ),
-                  ),
+                              ),
+                            );
+                          },
+                        ),
+                      ),
           ],
         ),
       ),
     );
   }
 }
+// ------------------- TAB 2: NATIVE-STYLE NOTES -------------------
 class NativeNotesScreen extends StatefulWidget {
   final List<Map<String, dynamic>> notes;
   final Function(String, String, String, bool) onAddNote;
@@ -751,6 +654,7 @@ class _NativeNotesScreenState extends State<NativeNotesScreen> {
   }
 }
 
+// ------------------- TAB 3: PROFILE -------------------
 class ProfileScreen extends StatefulWidget {
   final String name;
   final String studentClass;
