@@ -529,175 +529,94 @@ class _NativeNotesScreenState extends State<NativeNotesScreen> {
             ),
             const SizedBox(height: 15),
             Expanded(
-              chlors.blueAccent)),
-                              );
-                            }
+              child: filteredNotes.isEmpty
+                  ? const Center(child: Text('No notes available', style: TextStyle(color: Colors.grey)))
+                  : ListView.builder(
+                      itemCount: filteredNotes.length,
+                      itemBuilder: (context, index) {
+                        final note = filteredNotes[index];
+                        final originalIndex = widget.notes.indexOf(note);
 
-                            final video = _videos[index]['snippet'];
-                            final videoId = _videos[index]['id']?['videoId'] ?? '';
-                            final title = video['title'] ?? '';
-                            final channel = video['channelTitle'] ?? '';
-                            final thumb = video['thumbnails']?['medium']?['url'] ?? '';
-
-                            return InkWell(
-                              onTap: () => _openVideo(videoId),
-                              child: Container(
-                                margin: const EdgeInsets.only(bottom: 15),
-                                decoration: BoxDecoration(
-                                  color: const Color(0xFF1C1C1E),
-                                  borderRadius: BorderRadius.circular(12),
-                                ),
-                                clipBehavior: Clip.antiAlias,
-                                child: Column(
-                                  crossAxisAlignment: CrossAxisAlignment.start,
-                                  children: [
-                                    Image.network(
-                                      thumb,
-                                      width: double.infinity,
-                                      height: 180,
-                                      fit: BoxFit.cover,
-                                    ),
-                                    Padding(
-                                      padding: const EdgeInsets.all(12.0),
-                                      child: Column(
-                                        crossAxisAlignment: CrossAxisAlignment.start,
-                                        children: [
-                                          Text(
-                                            title,
-                                            style: const TextStyle(fontWeight: FontWeight.bold, fontSize: 14, color: Colors.white),
-                                            maxLines: 2,
-                                            overflow: TextOverflow.ellipsis,
-                                          ),
-                                          const SizedBox(height: 6),
-                                          Row(
-                                            mainAxisAlignment: MainAxisAlignment.spaceBetween,
-                                            children: [
-                                              Expanded(
-                                                child: Text(
-                                                  channel,
-                                                  style: const TextStyle(color: Colors.grey, fontSize: 12),
-                                                  overflow: TextOverflow.ellipsis,
-                                                ),
-                                              ),
-                                              const Icon(Icons.play_circle_fill, color: Colors.redAccent),
-                                            ],
-                                          ),
-                                        ],
+                        return Container(
+                          margin: const EdgeInsets.only(bottom: 12),
+                          padding: const EdgeInsets.all(14),
+                          decoration: BoxDecoration(
+                            color: const Color(0xFF1C1C1E),
+                            borderRadius: BorderRadius.circular(12),
+                            border: note['isPinned'] ? Border.all(color: Colors.blueAccent.withOpacity(0.6), width: 1) : null,
+                          ),
+                          child: Column(
+                            crossAxisAlignment: CrossAxisAlignment.start,
+                            children: [
+                              Row(
+                                mainAxisAlignment: MainAxisAlignment.spaceBetween,
+                                children: [
+                                  Row(
+                                    children: [
+                                      if (note['isPinned']) const Icon(Icons.push_pin, color: Colors.blueAccent, size: 16),
+                                      if (note['isPinned']) const SizedBox(width: 5),
+                                      Container(
+                                        padding: const EdgeInsets.symmetric(horizontal: 8, vertical: 3),
+                                        decoration: BoxDecoration(
+                                          color: Colors.blueAccent.withOpacity(0.2),
+                                          borderRadius: BorderRadius.circular(6),
+                                        ),
+                                        child: Text(note['category'], style: const TextStyle(color: Colors.blueAccent, fontSize: 11, fontWeight: FontWeight.bold)),
                                       ),
-                                    ),
-                                  ],
-                                ),
+                                    ],
+                                  ),
+                                  Row(
+                                    children: [
+                                      IconButton(
+                                        icon: const Icon(Icons.edit_outlined, color: Colors.grey, size: 18),
+                                        onPressed: () => _showNoteDialog(editIndex: originalIndex),
+                                      ),
+                                      IconButton(
+                                        icon: const Icon(Icons.delete_outline, color: Colors.redAccent, size: 18),
+                                        onPressed: () => widget.onDeleteNote(originalIndex),
+                                      ),
+                                    ],
+                                  ),
+                                ],
                               ),
-                            );
-                          },
-                        ),
-                      ),
-          ],
-        ),
-      ),
-    );
-  }
-}
-
-// ------------------- TAB 2: NOTES -------------------
-class NativeNotesScreen extends StatefulWidget {
-  final List<Map<String, dynamic>> notes;
-  final Function(String, String, String, bool) onAddNote;
-  final Function(int, String, String, String, bool) onEditNote;
-  final Function(int) onDeleteNote;
-
-  const NativeNotesScreen({
-    super.key,
-    required this.notes,
-    required this.onAddNote,
-    required this.onEditNote,
-    required this.onDeleteNote,
-  });
-
-  @override
-  State<NativeNotesScreen> createState() => _NativeNotesScreenState();
-}
-
-class _NativeNotesScreenState extends State<NativeNotesScreen> {
-  String selectedFilter = 'All notes';
-
-  void _showNoteDialog({int? editIndex}) {
-    final bool isEditing = editIndex != null;
-    final titleController = TextEditingController(text: isEditing ? widget.notes[editIndex]['title'] : '');
-    final contentController = TextEditingController(text: isEditing ? widget.notes[editIndex]['content'] : '');
-    String category = isEditing ? widget.notes[editIndex]['category'] : 'Education';
-    bool isPinned = isEditing ? widget.notes[editIndex]['isPinned'] : false;
-
-    showDialog(
-      context: context,
-      builder: (context) => StatefulBuilder(
-        builder: (context, setDialogState) => AlertDialog(
-          backgroundColor: const Color(0xFF1C1C1E),
-          title: Text(isEditing ? 'Edit Note' : 'New Note', style: const TextStyle(color: Colors.white)),
-          content: Column(
-            mainAxisSize: MainAxisSize.min,
-            children: [
-              TextField(controller: titleController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Title')),
-              TextField(controller: contentController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Content'), maxLines: 3),
-            ],
-          ),
-          actions: [
-            TextButton(onPressed: () => Navigator.pop(context), child: const Text('Cancel')),
-            ElevatedButton(
-              onPressed: () {
-                if (titleController.text.isNotEmpty) {
-                  if (isEditing) {
-                    widget.onEditNote(editIndex, titleController.text, contentController.text, category, isPinned);
-                  } else {
-                    widget.onAddNote(titleController.text, contentController.text, category, isPinned);
-                  }
-                  Navigator.pop(context);
-                }
-              },
-              child: Text(isEditing ? 'Update' : 'Save'),
+                              const SizedBox(height: 6),
+                              Text(note['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 16)),
+                              const SizedBox(height: 6),
+                              Text(note['content'], style: const TextStyle(color: Colors.white70, fontSize: 13)),
+                              const SizedBox(height: 8),
+                              Text(note['time'], style: const TextStyle(color: Colors.grey, fontSize: 10)),
+                            ],
+                          ),
+                        );
+                      },
+                    ),
             ),
           ],
         ),
-      ),
-    );
-  }
-
-  @override
-  Widget build(BuildContext context) {
-    return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(title: const Text('Notes 📝'), backgroundColor: Colors.black),
-      body: ListView.builder(
-        itemCount: widget.notes.length,
-        itemBuilder: (context, index) {
-          final note = widget.notes[index];
-          return ListTile(
-            title: Text(note['title'], style: const TextStyle(color: Colors.white, fontWeight: FontWeight.bold)),
-            subtitle: Text(note['content'], style: const TextStyle(color: Colors.grey)),
-            trailing: IconButton(
-              icon: const Icon(Icons.delete, color: Colors.grey),
-              onPressed: () => widget.onDeleteNote(index),
-            ),
-            onTap: () => _showNoteDialog(editIndex: index),
-          );
-        },
       ),
       floatingActionButton: FloatingActionButton(
         backgroundColor: Colors.blueAccent,
         onPressed: () => _showNoteDialog(),
-        child: const Icon(Icons.add, color: Colors.white),
+        child: const Icon(Icons.add, color: Colors.white, size: 28),
       ),
     );
   }
 }
 
-// ------------------- TAB 3: PROFILE -------------------
+// ------------------- TAB 3: STYLISH PROFILE -------------------
 class ProfileScreen extends StatefulWidget {
   final String name;
   final String studentClass;
+  final int totalNotes;
   final Function(String, String) onSave;
 
-  const ProfileScreen({super.key, required this.name, required this.studentClass, required this.onSave});
+  const ProfileScreen({
+    super.key,
+    required this.name,
+    required this.studentClass,
+    required this.totalNotes,
+    required this.onSave,
+  });
 
   @override
   State<ProfileScreen> createState() => _ProfileScreenState();
@@ -706,6 +625,8 @@ class ProfileScreen extends StatefulWidget {
 class _ProfileScreenState extends State<ProfileScreen> {
   late TextEditingController _nameController;
   late String _selectedClass;
+
+  final List<String> classesList = ['Class 9', 'Class 10', 'Class 11', 'Class 12'];
 
   @override
   void initState() {
@@ -717,21 +638,135 @@ class _ProfileScreenState extends State<ProfileScreen> {
   @override
   Widget build(BuildContext context) {
     return Scaffold(
-      backgroundColor: Colors.black,
-      appBar: AppBar(title: const Text('Profile 👤'), backgroundColor: Colors.black),
-      body: Padding(
+      backgroundColor: const Color(0xFF0D0D0D),
+      appBar: AppBar(
+        title: const Text('Profile 👤', style: TextStyle(fontWeight: FontWeight.bold)),
+        backgroundColor: const Color(0xFF0D0D0D),
+        elevation: 0,
+      ),
+      body: SingleChildScrollView(
         padding: const EdgeInsets.all(20.0),
         child: Column(
           children: [
-            TextField(controller: _nameController, style: const TextStyle(color: Colors.white), decoration: const InputDecoration(labelText: 'Name')),
-            const SizedBox(height: 20),
-            ElevatedButton(
-              onPressed: () {
-                widget.onSave(_nameController.text, _selectedClass);
-                ScaffoldMessenger.of(context).showSnackBar(const SnackBar(content: Text('Saved!')));
-              },
-              child: const Text('Save'),
-            )
+            const SizedBox(height: 10),
+            Center(
+              child: Stack(
+                children: [
+                  CircleAvatar(
+                    radius: 45,
+                    backgroundColor: Colors.blueAccent.withOpacity(0.2),
+                    child: const Icon(Icons.person, size: 50, color: Colors.blueAccent),
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 15),
+            Text(widget.name, style: const TextStyle(color: Colors.white, fontSize: 20, fontWeight: FontWeight.bold)),
+            Text(widget.studentClass, style: const TextStyle(color: Colors.grey, fontSize: 14)),
+            const SizedBox(height: 25),
+
+            // Stats Cards Row
+            Row(
+              children: [
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1C1C1E),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      children: [
+                        Text('${widget.totalNotes}', style: const TextStyle(color: Colors.blueAccent, fontSize: 22, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        const Text('Total Notes', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ),
+                const SizedBox(width: 12),
+                Expanded(
+                  child: Container(
+                    padding: const EdgeInsets.all(16),
+                    decoration: BoxDecoration(
+                      color: const Color(0xFF1C1C1E),
+                      borderRadius: BorderRadius.circular(14),
+                    ),
+                    child: Column(
+                      children: [
+                        Text(_selectedClass, style: const TextStyle(color: Colors.blueAccent, fontSize: 18, fontWeight: FontWeight.bold)),
+                        const SizedBox(height: 4),
+                        const Text('Active Syllabus', style: TextStyle(color: Colors.grey, fontSize: 12)),
+                      ],
+                    ),
+                  ),
+                ),
+              ],
+            ),
+            const SizedBox(height: 25),
+
+            // Form Inputs
+            Container(
+              padding: const EdgeInsets.all(16),
+              decoration: BoxDecoration(
+                color: const Color(0xFF1C1C1E),
+                borderRadius: BorderRadius.circular(14),
+              ),
+              child: Column(
+                crossAxisAlignment: CrossAxisAlignment.start,
+                children: [
+                  const Text('Edit Profile Details', style: TextStyle(color: Colors.white, fontWeight: FontWeight.bold, fontSize: 15)),
+                  const SizedBox(height: 15),
+                  TextField(
+                    controller: _nameController,
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Your Name',
+                      labelStyle: const TextStyle(color: Colors.grey),
+                      filled: true,
+                      fillColor: const Color(0xFF2C2C2E),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    ),
+                  ),
+                  const SizedBox(height: 15),
+                  DropdownButtonFormField<String>(
+                    value: _selectedClass,
+                    dropdownColor: const Color(0xFF2C2C2E),
+                    style: const TextStyle(color: Colors.white),
+                    decoration: InputDecoration(
+                      labelText: 'Select Class',
+                      labelStyle: const TextStyle(color: Colors.grey),
+                      filled: true,
+                      fillColor: const Color(0xFF2C2C2E),
+                      border: OutlineInputBorder(borderRadius: BorderRadius.circular(10), borderSide: BorderSide.none),
+                    ),
+                    items: classesList.map((c) => DropdownMenuItem(value: c, child: Text(c))).toList(),
+                    onChanged: (val) {
+                      if (val != null) setState(() => _selectedClass = val);
+                    },
+                  ),
+                ],
+              ),
+            ),
+            const SizedBox(height: 25),
+
+            SizedBox(
+              width: double.infinity,
+              height: 50,
+              child: ElevatedButton(
+                style: ElevatedButton.styleFrom(
+                  backgroundColor: Colors.blueAccent,
+                  shape: RoundedRectangleBorder(borderRadius: BorderRadius.circular(12)),
+                ),
+                onPressed: () {
+                  widget.onSave(_nameController.text, _selectedClass);
+                  ScaffoldMessenger.of(context).showSnackBar(
+                    const SnackBar(content: Text('Profile details updated successfully!')),
+                  );
+                },
+                child: const Text('Save Changes', style: TextStyle(color: Colors.white, fontSize: 16, fontWeight: FontWeight.bold)),
+              ),
+            ),
           ],
         ),
       ),
