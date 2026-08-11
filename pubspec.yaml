@@ -1,5 +1,5 @@
-name: my_flutter_apk
-description: "A study app"
+name: edupro
+description: "EduPro Learning App"
 publish_to: 'none'
 
 version: 1.0.0+1
