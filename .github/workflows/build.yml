@@ -11,7 +11,7 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
-      - uses: actions/checkout@v3
+      - uses: actions/checkout@v4
 
       - name: Set up Java
         uses: actions/setup-java@v4
@@ -26,9 +26,6 @@ jobs:
 
       - name: Install dependencies
         run: flutter pub get
-
-      - name: Fix Min SDK Version
-        run: sed -i 's/minSdkVersion.*/minSdkVersion 21/g' android/app/build.gradle
 
       - name: Build APK
         run: flutter build apk --release
