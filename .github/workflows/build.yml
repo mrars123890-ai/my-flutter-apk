@@ -10,6 +10,10 @@ jobs:
   build:
     runs-on: ubuntu-latest
 
+    defaults:
+      run:
+        working-directory: my-flutter-apk
+
     steps:
       - uses: actions/checkout@v4
 
@@ -34,4 +38,4 @@ jobs:
         uses: actions/upload-artifact@v4
         with:
           name: app-release
-          path: build/app/outputs/flutter-apk/app-release.apk
+          path: my-flutter-apk/build/app/outputs/flutter-apk/app-release.apk
