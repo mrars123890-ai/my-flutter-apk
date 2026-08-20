@@ -24,8 +24,8 @@ jobs:
         with:
           channel: 'stable'
 
-      - name: Repair Android Wrapper
-        run: flutter create . --platforms=android
+      - name: Create Android Config If Missing
+        run: flutter create . --platforms=android --suppress-analytics
 
       - name: Install dependencies
         run: flutter pub get
