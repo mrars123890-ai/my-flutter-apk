@@ -24,6 +24,9 @@ jobs:
         with:
           channel: 'stable'
 
+      - name: Repair Android Wrapper
+        run: flutter create . --platforms=android
+
       - name: Install dependencies
         run: flutter pub get
 
